@@ -1,0 +1,66 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StudentGradeApi.Data;
+using StudentGradeApi.DTOs;
+using StudentGradeApi.Models;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+
+[Route("api/[controller]")]
+[ApiController]
+public class StudentsController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public StudentsController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet("rank")]
+    public async Task<ActionResult<IEnumerable<StudentCgpaDto>>> GetStudentsWithCgpa()
+    {
+        var list = await _context.StudentCgpas
+                                 .OrderByDescending(s => s.CalculatedCgpa)
+                                 .Select(s => new StudentCgpaDto
+                                 {
+                                     StudentId = s.StudentId,
+                                     Name = s.Name,
+                                     CalculatedCgpa = s.CalculatedCgpa
+                                 })
+                                 .ToListAsync();
+
+        return Ok(list);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<StudentDto>> GetStudentDetails(string id)
+    {
+        var student = await _context.Students
+            .Include(s => s.Enrollments)
+            .FirstOrDefaultAsync(s => s.StudentId == id);
+
+        if (student == null) return NotFound();
+
+        return Ok(MapStudentToDto(student));
+    }
+
+    private static StudentDto MapStudentToDto(Student s) =>
+        new StudentDto
+        {
+            StudentId = s.StudentId,
+            Name = s.Name,
+            Email = s.Email,
+            Enrollments = s.Enrollments?.Select(MapEnrollmentToDto).ToList() ?? new List<EnrollmentDto>()
+        };
+
+    private static EnrollmentDto MapEnrollmentToDto(Enrollment e) =>
+        new EnrollmentDto
+        {
+            EnrollmentId = e.EnrollmentId,
+            StudentId = e.StudentId,
+            CourseName = e.CourseName,
+            Grade = e.Grade,
+        };
+}
