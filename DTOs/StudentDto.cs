@@ -8,7 +8,7 @@ namespace StudentGradeApi.DTOs
         public string StudentId { get; set; }
         public string Name { get; set; }
         public string Email { get; set; }
-
+        public decimal Cgpa { get; set; }
         public ICollection<EnrollmentDto> Enrollments { get; set; } = new List<EnrollmentDto>();
     }
 }

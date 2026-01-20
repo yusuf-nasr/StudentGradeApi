@@ -42,16 +42,21 @@ public class StudentsController : ControllerBase
             .FirstOrDefaultAsync(s => s.StudentId == id);
 
         if (student == null) return NotFound();
+        var studentCgpa = await _context.StudentCgpas
+            .FirstOrDefaultAsync(s => s.StudentId == id);
 
-        return Ok(MapStudentToDto(student));
+        decimal cgpa = studentCgpa?.CalculatedCgpa ?? 0 ;
+
+        return Ok(MapStudentToDto(student,cgpa));
     }
 
-    private static StudentDto MapStudentToDto(Student s) =>
+    private static StudentDto MapStudentToDto(Student s, decimal cgpa) =>
         new StudentDto
         {
             StudentId = s.StudentId,
             Name = s.Name,
             Email = s.Email,
+            Cgpa = cgpa,
             Enrollments = s.Enrollments?.Select(MapEnrollmentToDto).ToList() ?? new List<EnrollmentDto>()
         };
 
@@ -59,7 +64,6 @@ public class StudentsController : ControllerBase
         new EnrollmentDto
         {
             EnrollmentId = e.EnrollmentId,
-            StudentId = e.StudentId,
             CourseName = e.CourseName,
             Grade = e.Grade,
         };
