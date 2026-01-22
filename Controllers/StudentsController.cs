@@ -49,6 +49,22 @@ public class StudentsController : ControllerBase
 
         return Ok(MapStudentToDto(student,cgpa));
     }
+    
+    [HttpGet("rank/search/{name}")]
+    public async Task<ActionResult<IEnumerable<StudentDto>>> GetRankBySearch(string name)
+    {
+        var allstudents = await _context.StudentCgpas
+            .OrderByDescending(s => s.CalculatedCgpa).ToListAsync();
+        var studentRanks = allstudents.Select((Student, Index) => new StudentRankDto
+        {
+            Rank = Index + 1,
+            Name = Student.Name,
+            CGPA = Student.CalculatedCgpa
+        }).Where(s=>s.Name.ToLower().Contains(name.ToLower())).ToList();
+        if (!studentRanks.Any()) return NotFound("no students with this name");
+        return Ok(studentRanks);
+
+    }
 
     private static StudentDto MapStudentToDto(Student s, decimal cgpa) =>
         new StudentDto
