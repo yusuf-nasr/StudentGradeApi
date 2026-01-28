@@ -42,37 +42,47 @@ public class StudentsController : ControllerBase
             .FirstOrDefaultAsync(s => s.StudentId == id);
 
         if (student == null) return NotFound();
+
         var studentCgpa = await _context.StudentCgpas
             .FirstOrDefaultAsync(s => s.StudentId == id);
 
         decimal cgpa = studentCgpa?.CalculatedCgpa ?? 0 ;
 
-        return Ok(MapStudentToDto(student,cgpa));
+        return Ok(MapStudentToDto(student,cgpa, await CalculateStudentRankAsync(cgpa)));
     }
     
     [HttpGet("rank/search/{name}")]
     public async Task<ActionResult<IEnumerable<StudentDto>>> GetRankBySearch(string name)
     {
-        var allstudents = await _context.StudentCgpas
-            .OrderByDescending(s => s.CalculatedCgpa).ToListAsync();
-        var studentRanks = allstudents.Select((Student, Index) => new StudentRankDto
-        {
-            Rank = Index + 1,
-            Name = Student.Name,
-            CGPA = Student.CalculatedCgpa
-        }).Where(s=>s.Name.ToLower().Contains(name.ToLower())).ToList();
-        if (!studentRanks.Any()) return NotFound("no students with this name");
-        return Ok(studentRanks);
+        var searchResults = await _context.StudentCgpas
+        .Where(s => s.Name.Contains(name))
+        .ToListAsync();
 
+        var resultList = new List<StudentDto>();
+
+        foreach (var student in searchResults)
+        {
+            var studentDetails = await _context.Students
+                .Include(s => s.Enrollments)
+                .FirstOrDefaultAsync(s => s.StudentId == student.StudentId);
+
+            int rank = await CalculateStudentRankAsync(student.CalculatedCgpa);
+            var dto = MapStudentToDto(studentDetails, student.CalculatedCgpa, rank);
+
+            resultList.Add(dto);
+        }
+
+        return Ok(resultList.OrderBy(s => s.Rank));
     }
 
-    private static StudentDto MapStudentToDto(Student s, decimal cgpa) =>
+    private static StudentDto MapStudentToDto(Student s, decimal cgpa, int rank) =>
         new StudentDto
         {
             StudentId = s.StudentId,
             Name = s.Name,
             Email = s.Email,
             Cgpa = cgpa,
+            Rank = rank,
             Enrollments = s.Enrollments?.Select(MapEnrollmentToDto).ToList() ?? new List<EnrollmentDto>()
         };
 
@@ -83,4 +93,11 @@ public class StudentsController : ControllerBase
             CourseName = e.CourseName,
             Grade = e.Grade,
         };
+    private async Task<int> CalculateStudentRankAsync(decimal studentCgpa)
+    {
+        int countBetterStudents = await _context.StudentCgpas
+            .CountAsync(s => s.CalculatedCgpa > studentCgpa);
+
+        return countBetterStudents + 1;
+    }
 }
