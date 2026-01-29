@@ -19,10 +19,6 @@ namespace StudentGradeApi.Data
                 .HasNoKey()
                 .ToView("student_cgpa_view");
 
-            modelBuilder.Entity<StudentCgpa>()
-                    .HasIndex(s => s.CalculatedCgpa)
-                    .HasDatabaseName("IX_StudentCgpas_Cgpa_Descending");
-
             base.OnModelCreating(modelBuilder);
         }
     }
