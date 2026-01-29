@@ -33,7 +33,7 @@ public class StudentsController : ControllerBase
 
         if (student == null) return NotFound();
 
-        var CGPA = CalculateCGPA(student);
+        var CGPA = await CalculateCGPA(student);
         var Rank = await CalculateStudentRankAsync(CGPA);
         return Ok(MapStudentToDto(student, CGPA, Rank));
     }
@@ -102,18 +102,19 @@ public class StudentsController : ControllerBase
     private async Task<int> CalculateStudentRankAsync(decimal studentCgpa)
     {
         int countBetterStudents = await _context.StudentCgpas
-            .CountAsync(s => s.CalculatedCgpa > studentCgpa);
+            .CountAsync(s => Math.Round(s.CalculatedCgpa, 2) > Math.Round(studentCgpa, 2));
 
         return countBetterStudents + 1;
     }
-    private decimal CalculateCGPA(Student s)
+    private async Task<decimal> CalculateCGPA(Student s)
     {
         decimal x = 0, y = 0;
         foreach(var e in s.Enrollments)
         {
+            await _context.Entry(e).Reference(e => e.Course).LoadAsync();
             x += (e.Grade * e.Course.Credits);
             y += e.Course.Credits;
         }
-        return (y == 0 ? 0 : (x / y));
+        return Math.Round(y == 0 ? 0 : (x / y), 4);
     }
 }
