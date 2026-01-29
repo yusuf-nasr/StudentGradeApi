@@ -18,6 +18,6 @@ namespace StudentGradeApi.Models
         public string Email { get; set; }
 
         // Navigation Property
-        public ICollection<Enrollment> Enrollments { get; set; }
+        public virtual ICollection<Enrollment> Enrollments { get; set; }
     }
 }
