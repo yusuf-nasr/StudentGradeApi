@@ -12,6 +12,9 @@ namespace StudentGradeApi.Models
 
         [Column("credits")]
         public int Credits { get; set; }
+
+        [Column("year_num")]
+        public int YearNum { get; set; }
     }
 }
 
