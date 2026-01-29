@@ -28,7 +28,6 @@ public class StudentsController : ControllerBase
     public async Task<ActionResult<StudentDto>> GetStudentDetails(string id)
     {
         var student = await _context.Students
-            .Include(s => s.Enrollments)
             .FirstOrDefaultAsync(s => s.StudentId == id);
 
         if (student == null) return NotFound();
@@ -71,6 +70,7 @@ public class StudentsController : ControllerBase
         {
             CourseName = e.CourseName,
             Grade = e.Grade,
+            Year = e.Course.YearNum
         };
     
     private List<StudentRankDto> GetRankedStudents(List<StudentCgpa> students)
@@ -111,7 +111,6 @@ public class StudentsController : ControllerBase
         decimal x = 0, y = 0;
         foreach(var e in s.Enrollments)
         {
-            await _context.Entry(e).Reference(e => e.Course).LoadAsync();
             x += (e.Grade * e.Course.Credits);
             y += e.Course.Credits;
         }
